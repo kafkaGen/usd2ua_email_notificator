@@ -1,0 +1,7 @@
+-- 01_create_tables.sql
+
+CREATE TABLE IF NOT EXISTS Subscribers (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

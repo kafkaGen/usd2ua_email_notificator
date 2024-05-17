@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16.3
+    container_name: postgres_container
+    ports:
+      - ${DB_PORT}:5432
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../initdb:/docker-entrypoint-initdb.d
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: currency_mail
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - net
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: db
+      DB_PORT: 5432
+
+volumes:
+  postgres_data:
+
+networks:
+  net:
