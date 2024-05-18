@@ -67,7 +67,7 @@ func main() {
 	// TODO: pass cron time as env variable also
 	c.AddFunc("@daily", func() {
 		log.Println("Cron job triggered - calling SendDailyEmails")
-		// TODO: change to Strategy pattern to
+		// TODO: change to Strategy pattern, not send path to template directly
 		SendDailyEmails("messages/usd2ua.json")
 		log.Println("Finished calling SendDailyEmails")
 	})
