@@ -1,0 +1,23 @@
+FROM golang:1.18 as builder
+
+RUN apt-get update && apt-get install -y \
+    && apt-get clean
+
+WORKDIR /app
+
+COPY go.mod go.sum /app/
+RUN go mod download
+
+COPY . /app/
+
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o cron_main ./app/cron
+
+
+FROM alpine:latest as release
+
+WORKDIR /root/
+COPY --from=builder /app/cron_main .
+COPY --from=builder /app/messages/ ./messages/
+
+CMD ["./cron_main"]
+

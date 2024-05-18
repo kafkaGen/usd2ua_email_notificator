@@ -19,22 +19,49 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
+  currency_mail_api:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
-    container_name: currency_mail
+      dockerfile: docker/Dockerfile.api
+    container_name: currency_mail_api_container
     depends_on:
       db:
         condition: service_healthy
     networks:
       - net
     environment:
+      APP_PORT: ${APP_PORT}
+      API_KEY: ${API_KEY}
+      URL: ${URL}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_HOST: db
       DB_PORT: 5432
+    ports:
+      - 8080:${APP_PORT}
+
+  currency_mail_cron:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cron
+    container_name: currency_mail_cron_container
+    depends_on: 
+      - currency_mail_api
+    networks:
+      - net
+    environment:
+      API_KEY: ${API_KEY}
+      URL: ${URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: db
+      DB_PORT: 5432
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
 
 volumes:
   postgres_data:

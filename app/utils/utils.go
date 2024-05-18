@@ -2,16 +2,19 @@ package utils
 
 import (
 	"currency_mail/app/models"
+	"io/ioutil"
+	"strconv"
+	"strings"
 
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"log"
 	"regexp"
 	"time"
-	"github.com/jackc/pgx/v4/pgxpool"
+
+	"github.com/go-gomail/gomail"
 )
 
 func IsValidEmail(email string) bool {
@@ -69,33 +72,50 @@ func Rate() (models.RateResponse, error) {
 	return models.RateResponse{ExchangeRate: uaRate}, nil
 }
 
-func GetDB() *pgxpool.Pool {
-	dbName := os.Getenv("DB_NAME")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
+func SendEmail(email, subject string, body string) error {
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPortStr := os.Getenv("SMTP_PORT")
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
 
-	if dbName == "" || dbUser == "" || dbPassword == "" || dbHost == "" || dbPort == "" {
-		log.Fatalf("Database environment variables not set")
+	if smtpHost == "" || smtpPortStr == "" || smtpUser == "" || smtpPass == "" {
+		return fmt.Errorf("SMTP configuration not set")
 	}
 
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
-
-	config, err := pgxpool.ParseConfig(databaseURL)
+	smtpPort, err := strconv.Atoi(smtpPortStr)
 	if err != nil {
-		log.Fatalf("Unable to parse database URL: %v\n", err)
+		return fmt.Errorf("invalid SMTP port: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	m := gomail.NewMessage()
+	m.SetHeader("From", smtpUser)
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/plain", body)
 
-	dbpool, err := pgxpool.ConnectConfig(ctx, config)
+	d := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
+
+	return d.DialAndSend(m)
+}
+
+func LoadEmailTemplate(filePath string) (models.EmailTemplate, error) {
+	var template models.EmailTemplate
+
+	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
+		return template, fmt.Errorf("failed to read template file: %w", err)
 	}
 
-	log.Println("Database connection established")
+	err = json.Unmarshal(data, &template)
+	if err != nil {
+		return template, fmt.Errorf("failed to unmarshal template: %w", err)
+	}
 
-	return dbpool
+	return template, nil
+}
+
+func FormatEmail(template models.EmailTemplate, exchangeRate float64) (string, string) {
+	exchangeRateStr := fmt.Sprintf("%.2f", exchangeRate)
+	body := strings.Replace(template.Body, "[Current Exchange Rate]", exchangeRateStr, -1)
+	return template.Subject, body
 }

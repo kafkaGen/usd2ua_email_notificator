@@ -11,10 +11,9 @@ func SetupRouter() *gin.Engine {
 
 	r.GET("/rate", handlers.RateHandler)
 
-	// r.GET("/subscribes", handlers.RateHandler)
+	r.GET("/subscribes", handlers.GetEmailsHandler)
 	r.POST("/subscribe", handlers.SubscribeHandler)
 	r.POST("/unsubscribe", handlers.UnsubscribeHandler)
-	// r.POST("/update_subscribes", handlers.SubscribeHandler)
 
 	return r
 }

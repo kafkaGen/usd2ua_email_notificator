@@ -11,3 +11,8 @@ type RateResponse struct {
 type APIError struct {
 	Message string `json:"message"`
 }
+
+type EmailTemplate struct {
+	Subject string `json:"subject"`
+	Body    string `json:"body"`
+}

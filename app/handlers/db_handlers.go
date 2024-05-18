@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"currency_mail/app/db"
 	"currency_mail/app/models"
 	"currency_mail/app/utils"
 	"net/http"
@@ -22,7 +23,7 @@ func SubscribeHandler(c *gin.Context) {
 		return
 	}
 
-	conn := utils.GetDB()
+	conn := db.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -64,7 +65,7 @@ func UnsubscribeHandler(c *gin.Context) {
 		return
 	}
 
-	conn := utils.GetDB()
+	conn := db.GetDB()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -91,5 +92,17 @@ func UnsubscribeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Unsubscription successful",
 		"email":   req.Email,
+	})
+}
+
+func GetEmailsHandler(c *gin.Context) {
+	emails, err := db.GetAllEmails()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.APIError{Message: "Failed to retrieve emails"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"emails": emails,
 	})
 }
